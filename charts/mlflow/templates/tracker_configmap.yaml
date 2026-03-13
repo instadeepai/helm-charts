@@ -1,0 +1,13 @@
+{{- if .Values.tracker.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mlflow.fullname" . }}-tracker
+  labels:
+    {{- include "mlflow.labels" . | nindent 4 }}
+data:
+  dashboard_server.py: |
+{{ .Files.Get "files/dashboard_server.py" | indent 4 }}
+  mlflow_neptune_ui.html: |
+{{ .Files.Get "files/mlflow_neptune_ui.html" | indent 4 }}
+{{- end }}

@@ -1,0 +1,23 @@
+{{- if .Values.tracker.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "mlflow.fullname" . }}-tracker
+  labels:
+    {{- include "mlflow.labels" . | nindent 4 }}
+    app.kubernetes.io/component: tracker
+  {{- with .Values.tracker.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.tracker.service.type | default "ClusterIP" }}
+  ports:
+    - port: {{ .Values.tracker.service.port | default 80 }}
+      targetPort: tracker
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "mlflow.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: tracker
+{{- end }}

@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Melqart MLflow Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+<link rel="icon" href="https://develop.dev.eqx.deeppcb.ai/logo.svg" type="image/svg+xml">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0f1117;--bg-secondary:#161922;--bg-tertiary:#1c1f2b;
+    --card:#1c1f2b;--card-hover:#232738;
+    --border:#2a2e3d;--border-light:#363b4e;
+    --text:#e4e6ed;--text-secondary:#8b8fa3;--text-muted:#5c6078;
+    --primary:#3b82f6;--primary-dark:#2563eb;--primary-light:rgba(59,130,246,.12);
+    --primary-glow:rgba(59,130,246,.25);
+    --accent-green:#10b981;--accent-green-bg:rgba(16,185,129,.12);
+    --accent-orange:#f59e0b;--accent-orange-bg:rgba(245,158,11,.12);
+    --accent-red:#ef4444;--accent-red-bg:rgba(239,68,68,.12);
+    --accent-purple:#8b5cf6;
+    --shadow:0 1px 3px rgba(0,0,0,.3),0 1px 2px rgba(0,0,0,.2);
+    --shadow-lg:0 8px 24px rgba(0,0,0,.4);
+    --radius:8px;--radius-lg:12px;
+    --sidebar-width:280px;
+    --header-height:48px;
+  }
+  html{font-size:13px}
+  body{font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh;overflow:hidden}
+
+  /* Header */
+  .header{background:var(--bg-secondary);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;height:var(--header-height);position:fixed;top:0;left:0;right:0;z-index:100}
+  .header-logo{font-size:15px;font-weight:700;letter-spacing:-.3px;display:flex;align-items:center;gap:8px;color:#fff}
+  .header-logo img{width:22px;height:22px}
+  .header-logo .logo-accent{color:var(--primary);font-weight:400;font-size:12px;margin-left:4px;opacity:.7}
+  .header-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .header-input{background:var(--bg-tertiary);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 10px;font-size:12px;transition:border-color .2s}
+  .header-input:focus{outline:none;border-color:var(--primary);background:var(--bg)}
+  .header-input::placeholder{color:var(--text-muted)}
+  .btn{padding:5px 14px;border-radius:6px;border:none;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:4px}
+  .btn-primary{background:var(--primary);color:#fff}
+  .btn-primary:hover{background:var(--primary-dark)}
+  .btn-ghost{background:transparent;color:var(--text-secondary);border:1px solid var(--border)}
+  .btn-ghost:hover{background:var(--bg-tertiary);color:var(--text)}
+  .btn-ghost.active{background:var(--primary-light);border-color:var(--primary);color:var(--primary)}
+  .badge{background:var(--primary-light);color:var(--primary);border-radius:10px;padding:1px 8px;font-size:11px;font-weight:600}
+  .live-dot{width:6px;height:6px;border-radius:50%;background:var(--text-muted);transition:background .2s;flex-shrink:0}
+  .btn-ghost.active .live-dot{background:var(--accent-green);animation:pulse-live 1.5s ease-in-out infinite}
+  @keyframes pulse-live{0%,100%{opacity:1}50%{opacity:.3}}
+
+  /* Layout */
+  .layout{display:flex;height:calc(100vh - var(--header-height));margin-top:var(--header-height)}
+
+  /* Sidebar */
+  .sidebar{width:var(--sidebar-width);background:var(--bg-secondary);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+  .sidebar-header{padding:12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+  .sidebar-header h3{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-secondary)}
+  .sidebar-search{width:100%;padding:6px 10px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px}
+  .sidebar-search:focus{outline:none;border-color:var(--primary)}
+  .sidebar-search::placeholder{color:var(--text-muted)}
+
+  /* Run list in sidebar */
+  .run-list{flex:1;overflow-y:auto;padding:4px}
+  .run-list::-webkit-scrollbar{width:5px}
+  .run-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+  .run-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;cursor:pointer;transition:background .15s;margin-bottom:2px}
+  .run-item:hover{background:var(--bg-tertiary)}
+  .run-item.selected{background:var(--primary-light)}
+  .run-item .color-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .run-item .run-info{flex:1;min-width:0}
+  .run-item .run-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .run-item .run-exp{font-size:10px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .run-item .run-status{font-size:9px;padding:1px 6px;border-radius:8px;font-weight:600;text-transform:uppercase;flex-shrink:0}
+  .status-FINISHED{background:var(--accent-green-bg);color:var(--accent-green)}
+  .status-RUNNING{background:var(--primary-light);color:var(--primary)}
+  .status-FAILED{background:var(--accent-red-bg);color:var(--accent-red)}
+  .status-KILLED{background:var(--accent-orange-bg);color:var(--accent-orange)}
+
+  /* Main content */
+  .main-content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+  /* Tabs bar */
+  .tabs-bar{display:flex;align-items:center;gap:0;border-bottom:1px solid var(--border);background:var(--bg-secondary);padding:0 16px;flex-shrink:0}
+  .tab{padding:10px 16px;font-size:12px;font-weight:600;color:var(--text-secondary);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+  .tab:hover{color:var(--text)}
+  .tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+  .tabs-right{margin-left:auto;display:flex;align-items:center;gap:8px;padding:6px 0}
+
+  /* Metrics panel (Neptune-style) */
+  .metrics-layout{flex:1;display:flex;overflow:hidden}
+  .metrics-sidebar{width:240px;background:var(--bg-secondary);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+  .metrics-sidebar-header{padding:10px 12px;border-bottom:1px solid var(--border)}
+  .metrics-sidebar-header input{width:100%;padding:5px 8px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px}
+  .metrics-sidebar-header input:focus{outline:none;border-color:var(--primary)}
+  .metrics-sidebar-header input::placeholder{color:var(--text-muted)}
+  .metric-tree{flex:1;overflow-y:auto;padding:4px 0}
+  .metric-tree::-webkit-scrollbar{width:4px}
+  .metric-tree::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+  .metric-group{margin-bottom:2px}
+  .metric-group-header{padding:6px 12px;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px;cursor:pointer;display:flex;align-items:center;gap:6px;user-select:none}
+  .metric-group-header:hover{color:var(--text-secondary)}
+  .metric-group-header .chevron{font-size:9px;transition:transform .2s;color:var(--text-muted)}
+  .metric-group-header .chevron.open{transform:rotate(90deg)}
+  .metric-group-items{display:none}
+  .metric-group-items.open{display:block}
+  .metric-item{padding:4px 12px 4px 24px;font-size:11px;color:var(--text-secondary);cursor:pointer;transition:all .1s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:2px solid transparent;margin-left:12px}
+  .metric-item:hover{color:var(--text);background:var(--bg-tertiary)}
+  .metric-item.pinned{color:var(--primary);border-left-color:var(--primary);background:var(--primary-light);font-weight:600}
+
+  /* Charts area */
+  .charts-area{flex:1;overflow-y:auto;padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(480px,1fr));gap:12px;align-content:start}
+  .charts-area::-webkit-scrollbar{width:6px}
+  .charts-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+  .charts-area.single-col{grid-template-columns:1fr}
+  .chart-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);padding:16px;transition:border-color .2s;min-height:300px}
+  .chart-card:hover{border-color:var(--border-light)}
+  .chart-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .chart-card-header h3{font-size:13px;font-weight:600;color:var(--text)}
+  .chart-card-header .chart-actions{display:flex;gap:4px;align-items:center}
+  .chart-card-header .chart-info{font-size:10px;color:var(--text-muted)}
+  .btn-icon{width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text-secondary);cursor:pointer;font-size:11px;transition:all .15s}
+  .btn-icon:hover{background:var(--bg-tertiary);color:var(--text);border-color:var(--border-light)}
+  .chart-container{position:relative;width:100%;height:250px}
+  .chart-placeholder{display:flex;align-items:center;justify-content:center;height:250px;color:var(--text-muted);font-size:12px}
+
+  /* Comparison table view */
+  .table-view{flex:1;overflow:auto;padding:16px}
+  .table-view::-webkit-scrollbar{width:6px;height:6px}
+  .table-view::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+  .data-table{width:100%;border-collapse:collapse;font-size:12px}
+  .data-table thead{position:sticky;top:0;z-index:10}
+  .data-table th{background:var(--bg-tertiary);color:var(--text-secondary);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.5px;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap;user-select:none}
+  .data-table th:hover{color:var(--text)}
+  .data-table td{padding:7px 12px;border-bottom:1px solid var(--border);white-space:nowrap;color:var(--text-secondary)}
+  .data-table tr:hover td{background:var(--bg-tertiary)}
+  .data-table tr.selected td{background:var(--primary-light)}
+
+  /* Selection legend (bottom bar) */
+  .selection-bar{display:flex;align-items:center;gap:6px;padding:6px 16px;border-top:1px solid var(--border);background:var(--bg-secondary);flex-shrink:0;flex-wrap:wrap;min-height:38px}
+  .legend-chip{display:flex;align-items:center;gap:5px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:12px;padding:3px 10px 3px 6px;font-size:11px;font-weight:500;transition:all .15s;cursor:default}
+  .legend-chip:hover{border-color:var(--border-light)}
+  .legend-chip .remove{opacity:.4;cursor:pointer;font-size:13px;margin-left:2px}
+  .legend-chip:hover .remove{opacity:1}
+
+  /* Loading states */
+  .spinner-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,17,23,.8);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(4px)}
+  .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .inline-spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+
+  /* Toast */
+  .toast{position:fixed;bottom:20px;right:20px;background:var(--card);color:var(--text);padding:10px 16px;border-radius:var(--radius);font-size:12px;z-index:300;box-shadow:var(--shadow-lg);border:1px solid var(--border);transform:translateY(80px);opacity:0;transition:all .3s ease}
+  .toast.show{transform:translateY(0);opacity:1}
+  .toast.error{border-color:var(--accent-red)}
+
+  /* Empty state */
+  .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-muted);gap:8px}
+  .empty-state h3{font-size:15px;color:var(--text-secondary)}
+  .empty-state p{font-size:12px}
+
+  /* Color picker */
+  .color-swatch{width:10px;height:10px;border-radius:50%;cursor:pointer;flex-shrink:0;border:1.5px solid rgba(255,255,255,.2);position:relative;overflow:hidden}
+  .color-swatch input[type="color"]{position:absolute;top:-4px;left:-4px;width:20px;height:20px;border:none;cursor:pointer;opacity:0}
+
+  /* Mode selector */
+  .mode-select{padding:4px 8px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;cursor:pointer}
+  .mode-select:focus{outline:none;border-color:var(--primary)}
+
+  /* Hidden util */
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-logo">
+    <img src="https://develop.dev.eqx.deeppcb.ai/logo.svg" alt="Melqart" onerror="this.style.display='none'">
+    Melqart
+    <span class="logo-accent">MLflow Tracker</span>
+  </div>
+  <div class="header-right">
+    <input type="text" id="serverUrl" class="header-input" placeholder="MLflow URL (empty = proxy)" value="" style="width:200px">
+    <input type="text" id="experimentFilter" class="header-input" placeholder="Filter experiments..." value="" style="width:150px">
+    <button class="btn btn-primary" onclick="loadAllRuns()">Connect</button>
+    <button class="btn btn-ghost" onclick="loadFromMock()" title="Load mock data from server">Mock</button>
+    <button id="autoRefreshBtn" class="btn btn-ghost" onclick="toggleAutoRefresh()">
+      <span class="live-dot"></span> Live
+    </button>
+    <span id="runCountBadge" class="badge" style="display:none">0</span>
+  </div>
+</div>
+
+<!-- Layout -->
+<div class="layout">
+  <!-- Sidebar: Run list -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h3>Runs</h3>
+    </div>
+    <div style="padding:8px">
+      <input type="text" id="searchInput" class="sidebar-search" placeholder="Search runs...">
+    </div>
+    <div id="runList" class="run-list"></div>
+  </div>
+
+  <!-- Main content -->
+  <div class="main-content">
+    <!-- Tabs -->
+    <div class="tabs-bar">
+      <div class="tab active" data-tab="charts" onclick="switchTab('charts')">Charts</div>
+      <div class="tab" data-tab="table" onclick="switchTab('table')">Comparison</div>
+      <div class="tabs-right">
+        <button id="gridToggle" class="btn btn-ghost" onclick="toggleGrid()" title="Toggle grid layout" style="font-size:11px;padding:3px 8px">&#9638; Grid</button>
+        <select id="xAxisSelect" class="mode-select" title="X-axis mode">
+          <option value="steps">Steps</option>
+          <option value="relative_time">Relative Time</option>
+          <option value="absolute_time">Wall Clock</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Charts tab -->
+    <div id="chartsTab" class="metrics-layout">
+      <!-- Metrics sidebar -->
+      <div class="metrics-sidebar">
+        <div class="metrics-sidebar-header">
+          <input type="text" id="metricFilter" placeholder="Filter metrics...">
+        </div>
+        <div id="metricTree" class="metric-tree"></div>
+      </div>
+      <!-- Charts area (lazy-loaded) -->
+      <div id="chartsArea" class="charts-area"></div>
+    </div>
+
+    <!-- Table tab -->
+    <div id="tableTab" class="table-view hidden"></div>
+
+    <!-- Empty state -->
+    <div id="emptyState" class="empty-state">
+      <h3>No runs loaded</h3>
+      <p>Enter your MLflow server URL and click Connect, or use mock data.</p>
+    </div>
+
+    <!-- Selection legend bar -->
+    <div id="selectionBar" class="selection-bar"></div>
+  </div>
+</div>
+
+<div id="loadingOverlay" class="spinner-overlay" style="display:none"><div class="spinner"></div></div>
+<div id="toast" class="toast"></div>
+
+<script>
+// ======================== CONFIG ========================
+const PALETTE = [
+  '#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899',
+  '#06b6d4','#f97316','#22c55e','#a855f7','#e11d48','#14b8a6',
+  '#eab308','#6366f1','#84cc16','#0ea5e9'
+];
+const MAX_CHART_POINTS = 1500; // LTTB downsample target
+const LAZY_LOAD_MARGIN = '200px'; // pre-load charts 200px before visible
+
+// ======================== STATE ========================
+let allRuns = [];
+let allParamKeys = [];
+let selectedRunIds = new Set();
+let runColorMap = {};
+let colorIndex = 0;
+let chartInstances = {};
+let metricsCache = {};
+let pinnedMetrics = new Set();
+let metricGroups = {}; // { groupName: [metricKeys] }
+let openGroups = new Set();
+let autoRefreshInterval = null;
+let autoRefreshActive = false;
+let currentTab = 'charts';
+let sortCol = null;
+let sortAsc = true;
+let lazyObserver = null;
+let mockData = null; // loaded mock data
+
+// ======================== URL STATE ========================
+function getRunsFromUrl() {
+  const p = new URLSearchParams(location.search);
+  const r = p.get('runs');
+  return r ? r.split(',').filter(Boolean) : [];
+}
+function updateUrlWithRuns() {
+  const p = new URLSearchParams(location.search);
+  selectedRunIds.size > 0 ? p.set('runs', [...selectedRunIds].join(',')) : p.delete('runs');
+  const u = location.pathname + (p.toString() ? '?' + p : '');
+  history.replaceState(null, '', u);
+}
+
+// ======================== HELPERS ========================
+function getBaseUrl() {
+  const v = document.getElementById('serverUrl').value.trim().replace(/\/+$/, '');
+  return v || '/mlflow';
+}
+function showLoading(v) { document.getElementById('loadingOverlay').style.display = v ? 'flex' : 'none'; }
+function showToast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (isError ? ' error' : '');
+  requestAnimationFrame(() => t.classList.add('show'));
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => t.classList.remove('show'), 3500);
+}
+async function apiFetch(path) {
+  const r = await fetch(getBaseUrl() + path);
+  if (!r.ok) throw new Error('HTTP ' + r.status + ': ' + path);
+  return r.json();
+}
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ======================== LTTB DOWNSAMPLING ========================
+// Largest-Triangle-Three-Buckets algorithm for efficient chart rendering
+function lttbDownsample(data, threshold) {
+  if (data.length <= threshold) return data;
+  const sampled = [data[0]];
+  const every = (data.length - 2) / (threshold - 2);
+  let a = 0;
+  for (let i = 0; i < threshold - 2; i++) {
+    let avgX = 0, avgY = 0, avgRangeStart = Math.floor((i + 1) * every) + 1;
+    let avgRangeEnd = Math.floor((i + 2) * every) + 1;
+    avgRangeEnd = Math.min(avgRangeEnd, data.length);
+    const avgRangeLength = avgRangeEnd - avgRangeStart;
+    for (let j = avgRangeStart; j < avgRangeEnd; j++) {
+      avgX += data[j].x;
+      avgY += data[j].y;
+    }
+    avgX /= avgRangeLength;
+    avgY /= avgRangeLength;
+    let rangeStart = Math.floor(i * every) + 1;
+    let rangeEnd = Math.floor((i + 1) * every) + 1;
+    rangeEnd = Math.min(rangeEnd, data.length);
+    const pointAX = data[a].x, pointAY = data[a].y;
+    let maxArea = -1, nextA = rangeStart;
+    for (let j = rangeStart; j < rangeEnd; j++) {
+      const area = Math.abs((pointAX - avgX) * (data[j].y - pointAY) - (pointAX - data[j].x) * (avgY - pointAY));
+      if (area > maxArea) { maxArea = area; nextA = j; }
+    }
+    sampled.push(data[nextA]);
+    a = nextA;
+  }
+  sampled.push(data[data.length - 1]);
+  return sampled;
+}
+
+// ======================== AUTO REFRESH ========================
+function toggleAutoRefresh() {
+  autoRefreshActive = !autoRefreshActive;
+  const btn = document.getElementById('autoRefreshBtn');
+  btn.classList.toggle('active', autoRefreshActive);
+  if (autoRefreshActive) {
+    autoRefreshInterval = setInterval(refreshMetrics, 5000);
+  } else {
+    clearInterval(autoRefreshInterval);
+    autoRefreshInterval = null;
+  }
+}
+async function refreshMetrics() {
+  if (selectedRunIds.size === 0) return;
+  for (const id of selectedRunIds) {
+    const run = allRuns.find(r => r.run_id === id);
+    if (!run) continue;
+    for (const mk of run.metric_keys) delete metricsCache[id + '::' + mk];
+  }
+  await updateVisibleCharts();
+}
+
+// ======================== LOAD RUNS ========================
+async function loadFromMock() {
+  showLoading(true);
+  try {
+    const resp = await fetch('/mock-data');
+    if (!resp.ok) throw new Error('No mock data available (HTTP ' + resp.status + ')');
+    mockData = await resp.json();
+
+    allRuns = mockData.runs.map(r => ({
+      run_id: r.run_id,
+      run_name: r.run_name,
+      experiment_id: r.experiment_id || '0',
+      experiment_name: r.experiment_name || 'mock',
+      status: r.status || 'FINISHED',
+      start_time: r.start_time ? new Date(parseInt(r.start_time)) : new Date(),
+      params: r.params || {},
+      metrics: r.latest_metrics || {},
+      metric_keys: r.metric_keys || Object.keys(r.latest_metrics || {})
+    }));
+
+    const pkeys = new Set();
+    allRuns.forEach(r => Object.keys(r.params).forEach(k => pkeys.add(k)));
+    allParamKeys = [...pkeys].sort();
+    metricsCache = {};
+    destroyAllCharts();
+
+    // Metric histories are fetched on-demand via /mock-metric-history
+    const totalMetrics = allRuns.reduce((s, r) => s + r.metric_keys.length, 0);
+    finishLoading();
+    showToast('Loaded ' + allRuns.length + ' mock runs (' + totalMetrics + ' metrics, histories loaded on demand)');
+  } catch (e) {
+    showToast('Mock load failed: ' + e.message, true);
+  }
+  showLoading(false);
+}
+
+async function loadAllRuns() {
+  showLoading(true);
+  try {
+    const expData = await apiFetch('/api/2.0/mlflow/experiments/search?max_results=1000');
+    let experiments = expData.experiments || [];
+    const expFilter = document.getElementById('experimentFilter').value.trim().toLowerCase();
+    if (expFilter) experiments = experiments.filter(e => e.name.toLowerCase().includes(expFilter));
+    const expMap = {};
+    experiments.forEach(e => { expMap[e.experiment_id] = e.name; });
+
+    const expIds = experiments.map(e => e.experiment_id);
+    let runs = [];
+    let pageToken = null;
+    for (let i = 0; i < 50; i++) {
+      const body = { experiment_ids: expIds, max_results: 1000 };
+      if (pageToken) body.page_token = pageToken;
+      const resp = await fetch(getBaseUrl() + '/api/2.0/mlflow/runs/search', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+      });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const data = await resp.json();
+      runs = runs.concat(data.runs || []);
+      pageToken = data.next_page_token;
+      if (!pageToken) break;
+    }
+
+    allRuns = runs.map(r => {
+      const info = r.info || {}, data = r.data || {};
+      const params = {}; (data.params || []).forEach(p => { params[p.key] = p.value; });
+      const metrics = {}; (data.metrics || []).forEach(m => { metrics[m.key] = m.value; });
+      return {
+        run_id: info.run_id,
+        run_name: info.run_name || (info.run_id ? info.run_id.slice(0, 8) : '?'),
+        experiment_id: info.experiment_id,
+        experiment_name: expMap[info.experiment_id] || info.experiment_id,
+        status: info.status || 'UNKNOWN',
+        start_time: info.start_time ? new Date(parseInt(info.start_time)) : null,
+        params, metrics,
+        metric_keys: Object.keys(metrics)
+      };
+    });
+
+    const pkeys = new Set();
+    allRuns.forEach(r => Object.keys(r.params).forEach(k => pkeys.add(k)));
+    allParamKeys = [...pkeys].sort();
+    metricsCache = {};
+    destroyAllCharts();
+    finishLoading();
+    showToast('Loaded ' + allRuns.length + ' runs from ' + experiments.length + ' experiments');
+  } catch (e) {
+    showToast('Failed: ' + e.message, true);
+  }
+  showLoading(false);
+}
+
+function finishLoading() {
+  // Restore URL selections
+  const urlRunIds = getRunsFromUrl();
+  const existingIds = new Set(allRuns.map(r => r.run_id));
+  if (urlRunIds.length > 0 && selectedRunIds.size === 0) {
+    selectedRunIds = new Set(urlRunIds.filter(id => existingIds.has(id)));
+    selectedRunIds.forEach(id => assignColor(id));
+  }
+
+  document.getElementById('runCountBadge').style.display = 'inline';
+  document.getElementById('runCountBadge').textContent = allRuns.length + ' runs';
+  document.getElementById('emptyState').style.display = allRuns.length ? 'none' : 'flex';
+
+  renderRunList();
+  buildMetricTree();
+  renderSelectionBar();
+  updateUrlWithRuns();
+  if (selectedRunIds.size > 0) updatePinnedCharts();
+}
+
+// ======================== RUN LIST (sidebar) ========================
+function getFilteredRuns() {
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  if (!q) return allRuns;
+  return allRuns.filter(r =>
+    r.run_name.toLowerCase().includes(q) ||
+    r.experiment_name.toLowerCase().includes(q) ||
+    Object.values(r.params).some(v => v.toLowerCase().includes(q))
+  );
+}
+
+function renderRunList() {
+  const runs = getFilteredRuns();
+  const container = document.getElementById('runList');
+  container.innerHTML = '';
+  runs.forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'run-item' + (selectedRunIds.has(r.run_id) ? ' selected' : '');
+    div.innerHTML = `
+      <span class="color-dot" style="background:${runColorMap[r.run_id] || 'var(--text-muted)'}"></span>
+      <div class="run-info">
+        <div class="run-name" title="${escapeHtml(r.run_name)}">${escapeHtml(r.run_name)}</div>
+        <div class="run-exp" title="${escapeHtml(r.experiment_name)}">${escapeHtml(r.experiment_name)}</div>
+      </div>
+      <span class="run-status status-${r.status}">${r.status}</span>
+    `;
+    div.addEventListener('click', () => toggleRun(r.run_id));
+    container.appendChild(div);
+  });
+}
+
+// ======================== COLOR ========================
+function assignColor(runId) {
+  if (!runColorMap[runId]) {
+    runColorMap[runId] = PALETTE[colorIndex % PALETTE.length];
+    colorIndex++;
+  }
+  return runColorMap[runId];
+}
+
+// ======================== SELECTION ========================
+function toggleRun(runId) {
+  if (selectedRunIds.has(runId)) {
+    selectedRunIds.delete(runId);
+  } else {
+    selectedRunIds.add(runId);
+    assignColor(runId);
+  }
+  updateUrlWithRuns();
+  renderRunList();
+  renderSelectionBar();
+  buildMetricTree();
+  updatePinnedCharts();
+}
+
+function deselectRun(runId) {
+  selectedRunIds.delete(runId);
+  updateUrlWithRuns();
+  renderRunList();
+  renderSelectionBar();
+  buildMetricTree();
+  updatePinnedCharts();
+}
+
+function renderSelectionBar() {
+  const bar = document.getElementById('selectionBar');
+  bar.innerHTML = '';
+  if (selectedRunIds.size === 0) {
+    bar.innerHTML = '<span style="color:var(--text-muted);font-size:11px">Select runs to compare</span>';
+    return;
+  }
+  selectedRunIds.forEach(id => {
+    const run = allRuns.find(r => r.run_id === id);
+    if (!run) return;
+    const chip = document.createElement('div');
+    chip.className = 'legend-chip';
+    const swatch = document.createElement('span');
+    swatch.className = 'color-swatch';
+    swatch.style.background = runColorMap[id] || '#888';
+    const ci = document.createElement('input');
+    ci.type = 'color'; ci.value = runColorMap[id] || '#888888';
+    ci.addEventListener('input', e => { runColorMap[id] = e.target.value; swatch.style.background = e.target.value; rebuildAllChartColors(); renderRunList(); });
+    ci.addEventListener('click', e => e.stopPropagation());
+    swatch.appendChild(ci);
+    chip.appendChild(swatch);
+    const name = document.createElement('span');
+    name.textContent = run.run_name;
+    chip.appendChild(name);
+    const rm = document.createElement('span');
+    rm.className = 'remove'; rm.innerHTML = '&times;';
+    rm.addEventListener('click', () => deselectRun(id));
+    chip.appendChild(rm);
+    bar.appendChild(chip);
+  });
+}
+
+// ======================== METRIC TREE (Neptune-style) ========================
+function buildMetricTree() {
+  const allKeys = new Set();
+  selectedRunIds.forEach(id => {
+    const run = allRuns.find(r => r.run_id === id);
+    if (run) run.metric_keys.forEach(k => allKeys.add(k));
+  });
+
+  const filter = document.getElementById('metricFilter').value.toLowerCase().trim();
+  const filtered = [...allKeys].filter(k => !filter || k.toLowerCase().includes(filter)).sort();
+
+  // Group by prefix (split on / or first segment)
+  metricGroups = {};
+  filtered.forEach(k => {
+    const parts = k.split('/');
+    const group = parts.length > 1 ? parts[0] : 'metrics';
+    if (!metricGroups[group]) metricGroups[group] = [];
+    metricGroups[group].push(k);
+  });
+
+  const container = document.getElementById('metricTree');
+  container.innerHTML = '';
+
+  // If no metrics, show message
+  if (filtered.length === 0) {
+    container.innerHTML = '<div style="padding:16px;color:var(--text-muted);font-size:11px;text-align:center">' +
+      (selectedRunIds.size === 0 ? 'Select runs first' : 'No metrics found') + '</div>';
+    return;
+  }
+
+  // Pin all / unpin all buttons
+  const actions = document.createElement('div');
+  actions.style.cssText = 'padding:6px 12px;display:flex;gap:4px';
+  actions.innerHTML = `
+    <button class="btn btn-ghost" style="font-size:10px;padding:2px 8px" onclick="pinAllVisible()">Pin All</button>
+    <button class="btn btn-ghost" style="font-size:10px;padding:2px 8px" onclick="unpinAll()">Clear</button>
+    <span style="margin-left:auto;color:var(--text-muted);font-size:10px;line-height:24px">${filtered.length}</span>
+  `;
+  container.appendChild(actions);
+
+  for (const [group, keys] of Object.entries(metricGroups)) {
+    const grp = document.createElement('div');
+    grp.className = 'metric-group';
+
+    const isOpen = openGroups.has(group) || (Object.keys(metricGroups).length <= 3 && keys.length <= 50);
+    const header = document.createElement('div');
+    header.className = 'metric-group-header';
+    const pinnedCount = keys.filter(k => pinnedMetrics.has(k)).length;
+    header.innerHTML = `<span class="chevron ${isOpen ? 'open' : ''}">&#9654;</span> ${escapeHtml(group)} ` +
+      `<span style="margin-left:auto;display:flex;align-items:center;gap:6px">` +
+      (pinnedCount > 0 ? `<span style="font-size:9px;color:var(--primary)">${pinnedCount} pinned</span>` : '') +
+      `<span style="font-size:9px;color:var(--text-muted)">${keys.length}</span>` +
+      `<button class="btn-icon" style="width:18px;height:18px;font-size:9px" title="Pin all in group" data-group="${escapeHtml(group)}">+</button>` +
+      `</span>`;
+    header.querySelector('.chevron').parentElement.addEventListener('click', (e) => {
+      if (e.target.closest('.btn-icon')) return;
+      isOpen ? openGroups.delete(group) : openGroups.add(group);
+      buildMetricTree();
+    });
+    header.querySelector('.btn-icon').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const grpKeys = metricGroups[group] || [];
+      if (grpKeys.length > 50 && !confirm('Pin ' + grpKeys.length + ' metrics?')) return;
+      grpKeys.forEach(k => { if (!pinnedMetrics.has(k)) { pinnedMetrics.add(k); addChartCard(k); } });
+      buildMetricTree();
+    });
+    grp.appendChild(header);
+
+    const items = document.createElement('div');
+    items.className = 'metric-group-items' + (isOpen ? ' open' : '');
+    keys.forEach(k => {
+      const item = document.createElement('div');
+      item.className = 'metric-item' + (pinnedMetrics.has(k) ? ' pinned' : '');
+      const shortName = k.split('/').slice(1).join('/') || k;
+      item.textContent = shortName;
+      item.title = k;
+      item.addEventListener('click', () => togglePinMetric(k));
+      items.appendChild(item);
+    });
+    grp.appendChild(items);
+    container.appendChild(grp);
+
+    if (isOpen) openGroups.add(group);
+  }
+}
+
+function togglePinMetric(key) {
+  if (pinnedMetrics.has(key)) {
+    pinnedMetrics.delete(key);
+    // Remove chart
+    if (chartInstances[key]) { chartInstances[key].destroy(); delete chartInstances[key]; }
+    const el = document.getElementById('chart-' + CSS.escape(key));
+    if (el) el.remove();
+  } else {
+    pinnedMetrics.add(key);
+    // Add chart card (lazy)
+    addChartCard(key);
+  }
+  buildMetricTree();
+}
+
+let gridMode = true; // true = multi-col grid
+
+function toggleGrid() {
+  gridMode = !gridMode;
+  const area = document.getElementById('chartsArea');
+  area.classList.toggle('single-col', !gridMode);
+  document.getElementById('gridToggle').classList.toggle('active', gridMode);
+  // Resize all charts
+  Object.values(chartInstances).forEach(c => c.resize());
+}
+
+function pinAllVisible() {
+  let count = 0;
+  for (const keys of Object.values(metricGroups)) count += keys.length;
+  if (count > 50) {
+    if (!confirm('Pin ' + count + ' metrics? This may be slow.')) return;
+  }
+  for (const keys of Object.values(metricGroups)) {
+    keys.forEach(k => {
+      if (!pinnedMetrics.has(k)) {
+        pinnedMetrics.add(k);
+        addChartCard(k);
+      }
+    });
+  }
+  buildMetricTree();
+}
+
+function unpinAll() {
+  pinnedMetrics.clear();
+  destroyAllCharts();
+  document.getElementById('chartsArea').innerHTML = '';
+  buildMetricTree();
+}
+
+// ======================== CHART MANAGEMENT ========================
+function destroyAllCharts() {
+  Object.values(chartInstances).forEach(c => c.destroy());
+  chartInstances = {};
+}
+
+function addChartCard(metricKey) {
+  const area = document.getElementById('chartsArea');
+  const cardId = 'chart-' + metricKey;
+  if (document.getElementById(cardId)) return; // already exists
+
+  const card = document.createElement('div');
+  card.className = 'chart-card';
+  card.id = cardId;
+  card.setAttribute('data-metric', metricKey);
+  card.innerHTML = `
+    <div class="chart-card-header">
+      <h3>${escapeHtml(metricKey)}</h3>
+      <div class="chart-actions">
+        <span class="chart-info" id="info-${CSS.escape(metricKey)}"></span>
+        <button class="btn-icon" title="Reset zoom" onclick="resetChartZoom('${escapeHtml(metricKey)}')">&#8634;</button>
+        <button class="btn-icon" title="Remove" onclick="togglePinMetric('${escapeHtml(metricKey)}')">&times;</button>
+      </div>
+    </div>
+    <div class="chart-container" id="canvas-wrapper-${CSS.escape(metricKey)}">
+      <div class="chart-placeholder">Loading...</div>
+    </div>
+  `;
+  area.appendChild(card);
+
+  // Lazy load via IntersectionObserver
+  if (lazyObserver) {
+    lazyObserver.observe(card);
+  } else {
+    // Fallback: load immediately
+    loadChartData(metricKey);
+  }
+}
+
+function resetChartZoom(metricKey) {
+  if (chartInstances[metricKey]) chartInstances[metricKey].resetZoom();
+}
+
+// ======================== LAZY LOADING ========================
+function setupLazyObserver() {
+  if (!('IntersectionObserver' in window)) return;
+  lazyObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const metricKey = entry.target.getAttribute('data-metric');
+        if (metricKey && !chartInstances[metricKey]) {
+          loadChartData(metricKey);
+        }
+      }
+    });
+  }, { root: document.getElementById('chartsArea'), rootMargin: LAZY_LOAD_MARGIN });
+}
+
+// ======================== METRIC FETCHING ========================
+async function fetchMetricHistory(runId, metricKey) {
+  const cacheKey = runId + '::' + metricKey;
+  if (metricsCache[cacheKey]) return metricsCache[cacheKey];
+
+  let data;
+  if (mockData) {
+    // Fetch individual metric from mock endpoint (on-demand, not all at once)
+    const resp = await fetch('/mock-metric-history?run_id=' + encodeURIComponent(runId) +
+      '&metric_key=' + encodeURIComponent(metricKey));
+    data = await resp.json();
+  } else {
+    data = await apiFetch('/api/2.0/mlflow/metrics/get-history?run_id=' +
+      encodeURIComponent(runId) + '&metric_key=' + encodeURIComponent(metricKey) + '&max_results=25000');
+  }
+  const history = (data.metrics || []).map(m => ({
+    step: parseInt(m.step), value: parseFloat(m.value), timestamp: m.timestamp ? parseInt(m.timestamp) : 0
+  })).sort((a, b) => a.step - b.step);
+  metricsCache[cacheKey] = history;
+  return history;
+}
+
+// ======================== X-AXIS ========================
+function getXAxisMode() { return document.getElementById('xAxisSelect').value; }
+
+function transformXData(history, mode) {
+  if (mode === 'relative_time') {
+    if (history.length === 0) return [];
+    const t0 = history[0].timestamp;
+    return history.map(h => ({ x: (h.timestamp - t0) / 1000, y: h.value }));
+  }
+  if (mode === 'absolute_time') return history.map(h => ({ x: h.timestamp, y: h.value }));
+  return history.map(h => ({ x: h.step, y: h.value }));
+}
+
+function getXAxisConfig(mode) {
+  const base = { grid: { color: 'rgba(42,46,61,.6)' }, ticks: { font: { size: 10 }, color: '#5c6078' } };
+  if (mode === 'steps') return { ...base, type: 'linear', title: { display: true, text: 'Step', font: { size: 10, weight: '600' }, color: '#5c6078' } };
+  if (mode === 'relative_time') return { ...base, type: 'linear', title: { display: true, text: 'Time (s)', font: { size: 10, weight: '600' }, color: '#5c6078' } };
+  return { ...base, type: 'linear', title: { display: true, text: 'Wall Clock', font: { size: 10, weight: '600' }, color: '#5c6078' },
+    ticks: { ...base.ticks, callback: v => new Date(v).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) } };
+}
+
+// ======================== RENDER SINGLE CHART ========================
+async function loadChartData(metricKey) {
+  const xMode = getXAxisMode();
+  const datasets = [];
+  let totalPoints = 0;
+
+  for (const runId of selectedRunIds) {
+    const run = allRuns.find(r => r.run_id === runId);
+    if (!run || !run.metric_keys.includes(metricKey)) continue;
+    const history = await fetchMetricHistory(runId, metricKey);
+    if (history.length === 0) continue;
+    totalPoints += history.length;
+    let data = transformXData(history, xMode);
+    // LTTB downsample for performance
+    data = lttbDownsample(data, MAX_CHART_POINTS);
+    datasets.push({
+      label: run.run_name,
+      data,
+      borderColor: runColorMap[runId],
+      backgroundColor: runColorMap[runId] + '22',
+      borderWidth: 1.5,
+      pointRadius: data.length > 200 ? 0 : 1.5,
+      pointHoverRadius: 3,
+      tension: 0.2,
+      fill: false
+    });
+  }
+
+  if (datasets.length === 0) return;
+
+  // Update info
+  const infoEl = document.getElementById('info-' + CSS.escape(metricKey));
+  if (infoEl) infoEl.textContent = totalPoints.toLocaleString() + ' pts';
+
+  // Render chart
+  const wrapper = document.getElementById('canvas-wrapper-' + CSS.escape(metricKey));
+  if (!wrapper) return;
+  wrapper.innerHTML = '';
+  const canvas = document.createElement('canvas');
+  wrapper.appendChild(canvas);
+
+  chartInstances[metricKey] = new Chart(canvas, {
+    type: 'line',
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false, // Disable animation for performance
+      interaction: { mode: 'nearest', axis: 'x', intersect: false },
+      plugins: {
+        legend: { display: datasets.length > 1, position: 'top', labels: { usePointStyle: true, padding: 8, font: { size: 10 }, color: '#8b8fa3' } },
+        tooltip: {
+          backgroundColor: 'rgba(28,31,43,.95)', titleFont: { size: 11 }, bodyFont: { size: 11 },
+          padding: 8, cornerRadius: 6, borderColor: 'rgba(42,46,61,.8)', borderWidth: 1,
+          callbacks: {
+            title: items => items.length ? (xMode === 'steps' ? 'Step ' + items[0].parsed.x : xMode === 'relative_time' ? items[0].parsed.x.toFixed(1) + 's' : new Date(items[0].parsed.x).toLocaleString()) : '',
+            label: item => item.dataset.label + ': ' + item.parsed.y.toPrecision(6)
+          }
+        },
+        zoom: {
+          pan: { enabled: true, mode: 'xy', modifierKey: 'shift' },
+          zoom: { wheel: { enabled: false }, pinch: { enabled: true }, drag: { enabled: true, backgroundColor: 'rgba(59,130,246,0.1)', borderColor: 'rgba(59,130,246,0.4)', borderWidth: 1 }, mode: 'xy' }
+        }
+      },
+      scales: {
+        x: getXAxisConfig(xMode),
+        y: { grid: { color: 'rgba(42,46,61,.6)' }, ticks: { font: { size: 10 }, color: '#5c6078' } }
+      }
+    }
+  });
+}
+
+// ======================== UPDATE CHARTS ========================
+async function updatePinnedCharts() {
+  const area = document.getElementById('chartsArea');
+  // Remove charts for unpinned metrics
+  area.querySelectorAll('.chart-card').forEach(card => {
+    const mk = card.getAttribute('data-metric');
+    if (!pinnedMetrics.has(mk)) {
+      if (chartInstances[mk]) { chartInstances[mk].destroy(); delete chartInstances[mk]; }
+      card.remove();
+    }
+  });
+  // Add/update pinned
+  for (const mk of pinnedMetrics) {
+    if (!document.getElementById('chart-' + mk)) {
+      addChartCard(mk);
+    } else {
+      // Re-render existing
+      if (chartInstances[mk]) { chartInstances[mk].destroy(); delete chartInstances[mk]; }
+      await loadChartData(mk);
+    }
+  }
+}
+
+async function updateVisibleCharts() {
+  for (const mk of pinnedMetrics) {
+    if (chartInstances[mk]) { chartInstances[mk].destroy(); delete chartInstances[mk]; }
+    await loadChartData(mk);
+  }
+}
+
+function rebuildAllChartColors() {
+  const xMode = getXAxisMode();
+  for (const mk of Object.keys(chartInstances)) {
+    const chart = chartInstances[mk];
+    chart.data.datasets.forEach(ds => {
+      const run = allRuns.find(r => r.run_name === ds.label);
+      if (run && runColorMap[run.run_id]) {
+        ds.borderColor = runColorMap[run.run_id];
+        ds.backgroundColor = runColorMap[run.run_id] + '22';
+      }
+    });
+    chart.update('none');
+  }
+}
+
+// ======================== TAB SWITCHING ========================
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.getElementById('chartsTab').classList.toggle('hidden', tab !== 'charts');
+  document.getElementById('tableTab').classList.toggle('hidden', tab !== 'table');
+  if (tab === 'table') renderComparisonTable();
+}
+
+// ======================== COMPARISON TABLE ========================
+function renderComparisonTable() {
+  const container = document.getElementById('tableTab');
+  if (selectedRunIds.size === 0) {
+    container.innerHTML = '<div class="empty-state"><p>Select runs to compare</p></div>';
+    return;
+  }
+  const runs = allRuns.filter(r => selectedRunIds.has(r.run_id));
+  const allMKeys = new Set();
+  runs.forEach(r => r.metric_keys.forEach(k => allMKeys.add(k)));
+  const mKeys = [...allMKeys].sort();
+
+  let html = '<table class="data-table"><thead><tr><th>Metric</th>';
+  runs.forEach(r => { html += `<th><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${runColorMap[r.run_id]};margin-right:4px;vertical-align:middle"></span>${escapeHtml(r.run_name)}</th>`; });
+  html += '</tr></thead><tbody>';
+
+  // Params section
+  html += '<tr><td colspan="' + (runs.length + 1) + '" style="background:var(--bg);font-weight:700;text-transform:uppercase;font-size:9px;letter-spacing:.5px;color:var(--text-muted);padding:6px 12px">Parameters</td></tr>';
+  allParamKeys.forEach(pk => {
+    html += '<tr><td style="font-weight:600">' + escapeHtml(pk) + '</td>';
+    runs.forEach(r => { html += '<td>' + escapeHtml(r.params[pk] || '-') + '</td>'; });
+    html += '</tr>';
+  });
+
+  // Metrics section
+  html += '<tr><td colspan="' + (runs.length + 1) + '" style="background:var(--bg);font-weight:700;text-transform:uppercase;font-size:9px;letter-spacing:.5px;color:var(--text-muted);padding:6px 12px">Latest Metrics</td></tr>';
+  mKeys.forEach(mk => {
+    html += '<tr><td style="font-weight:600;cursor:pointer" onclick="togglePinMetric(\'' + escapeHtml(mk) + '\')" title="Click to pin chart">' + escapeHtml(mk) + '</td>';
+    runs.forEach(r => {
+      const v = r.metrics[mk];
+      html += '<td>' + (v !== undefined ? parseFloat(v).toPrecision(6) : '-') + '</td>';
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+// ======================== EVENT LISTENERS ========================
+let searchTimeout;
+document.getElementById('searchInput').addEventListener('input', () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(renderRunList, 200);
+});
+
+let metricFilterTimeout;
+document.getElementById('metricFilter').addEventListener('input', () => {
+  clearTimeout(metricFilterTimeout);
+  metricFilterTimeout = setTimeout(buildMetricTree, 200);
+});
+
+document.getElementById('xAxisSelect').addEventListener('change', () => {
+  if (pinnedMetrics.size > 0) updateVisibleCharts();
+});
+
+// ======================== INIT ========================
+setupLazyObserver();
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(location.search);
+  if (params.get('server')) document.getElementById('serverUrl').value = params.get('server');
+
+  // Try mock data first, then live
+  loadFromMock().catch(() => loadAllRuns());
+});
+</script>
+</body>
+</html>

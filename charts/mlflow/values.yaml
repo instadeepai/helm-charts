@@ -579,3 +579,50 @@ readinessProbe:
   periodSeconds: 30
   timeoutSeconds: 3
   failureThreshold: 5
+
+# -- Melqart MLflow Tracker: custom high-performance UI that replaces the default MLflow UI.
+# It proxies all API calls to the MLflow backend and serves an optimised dashboard
+# designed for experiments with thousands of metrics.
+tracker:
+  # -- Enable the Melqart MLflow Tracker custom UI
+  enabled: false
+
+  # -- Number of tracker replicas
+  replicaCount: 1
+
+  # -- Tracker container image (must have Python 3.10+ with fastapi, uvicorn, httpx)
+  image:
+    repository: python
+    tag: "3.10-slim"
+    pullPolicy: IfNotPresent
+
+  # -- Tracker service configuration
+  service:
+    type: ClusterIP
+    port: 80
+    containerPort: 8501
+    annotations: {}
+
+  # -- Tracker ingress configuration
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: tracker.chart-example.local
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+    tls: []
+
+  # -- Tracker resource limits
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+  # -- Extra environment variables for the tracker
+  extraEnvVars: {}
