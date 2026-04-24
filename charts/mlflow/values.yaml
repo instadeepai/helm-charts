@@ -507,13 +507,14 @@ resources: {}
 serviceMonitor:
   # -- When set true then use a ServiceMonitor to configure scraping
   enabled: false
-  # -- When set true then use a service port. On default use a pod port.
+  # -- If true, endpoint `port` = service.name. If false, `targetPort` = service.containerPortName (pod).
   useServicePort: false
   # -- Set the namespace the ServiceMonitor should be deployed
   namespace: monitoring
   # -- Set how frequently Prometheus should scrape
   interval: 30s
-  # -- Set path to mlflow telemetry-path
+  # -- Scrape path for the Prometheus endpoint (must match mlflow server / --expose-prometheus).
+  # Stock MLflow is usually /metrics; with a static URL prefix use e.g. /mlflow/metrics
   telemetryPath: /metrics
   # -- Set labels for the ServiceMonitor, use this to define your scrape label for Prometheus Operator
   labels:

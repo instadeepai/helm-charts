@@ -13,10 +13,10 @@ metadata:
 {{- end }}
 spec:
   endpoints:
-{{- if .Values.serviceMonitor.useServicePort}}
+{{- if .Values.serviceMonitor.useServicePort }}
   - port: {{ .Values.service.name }}
 {{- else }}
-  - targetPort: {{ .Values.service.name }}
+  - targetPort: {{ .Values.service.containerPortName }}
 {{- end }}
 {{- if .Values.serviceMonitor.interval }}
     interval: {{ .Values.serviceMonitor.interval }}
