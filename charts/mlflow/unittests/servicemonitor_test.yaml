@@ -19,10 +19,11 @@ tests:
       - hasDocuments:
           count: 0
 
-  - it: should use the desired service name as the target endpoint
+  - it: should use the container port name as target when not using service port
     set:
       serviceMonitor.enabled: true
       service.name: myendpoint
+      service.containerPortName: myappport
     capabilities:
       apiVersions:
         - monitoring.coreos.com/v1
@@ -30,7 +31,7 @@ tests:
       - contains:
           path: spec.endpoints
           content:
-            targetPort: myendpoint
+            targetPort: myappport
           any: true
 
   - it: should use a service endpoint rather than a pod endpoint
