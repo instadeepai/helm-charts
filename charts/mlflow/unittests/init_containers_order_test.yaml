@@ -1,0 +1,51 @@
+suite: test init container ordering
+
+templates:
+  - configmap.yaml
+  - deployment.yaml
+
+tests:
+  - it: should render custom init containers after the built-in ones by default
+    set:
+      backendStore.postgres.enabled: true
+      backendStore.postgres.host: postgres
+      backendStore.postgres.port: 5432
+      backendStore.postgres.database: mlflow
+      backendStore.postgres.user: mlflow
+      backendStore.postgres.password: P455w0rd!
+      backendStore.databaseConnectionCheck: true
+      initContainers:
+        - name: my-proxy
+          image: proxy:1.0.0
+    templates:
+      - deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: dbchecker
+      - equal:
+          path: spec.template.spec.initContainers[-1].name
+          value: my-proxy
+
+  - it: should render custom init containers first when initContainersFirst is set
+    set:
+      backendStore.postgres.enabled: true
+      backendStore.postgres.host: postgres
+      backendStore.postgres.port: 5432
+      backendStore.postgres.database: mlflow
+      backendStore.postgres.user: mlflow
+      backendStore.postgres.password: P455w0rd!
+      backendStore.databaseConnectionCheck: true
+      initContainersFirst: true
+      initContainers:
+        - name: my-proxy
+          image: proxy:1.0.0
+    templates:
+      - deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: my-proxy
+      - equal:
+          path: spec.template.spec.initContainers[1].name
+          value: dbchecker

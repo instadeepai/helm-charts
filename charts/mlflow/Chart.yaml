@@ -14,12 +14,12 @@ type: application
 # This is the chart version. This version number should be incremented each time you make changes
 # to the chart and its templates, including the app version.
 # Versions are expected to follow Semantic Versioning (https://semver.org/)
-version: 1.8.1-instadeep.1
+version: 1.11.4-instadeep.1
 # This is the version number of the application being deployed. This version number should be
 # incremented each time you make changes to the application. Versions are not expected to
 # follow Semantic Versioning. They should reflect the version the application is using.
 # It is recommended to use it with quotes.
-appVersion: "3.7.0"
+appVersion: "3.15.1"
 kubeVersion: ">=1.16.0-0"
 home: https://mlflow.org
 maintainers:
@@ -52,30 +52,41 @@ annotations:
   artifacthub.io/containsSecurityUpdates: "false"
   artifacthub.io/changes: |-
     - kind: changed
-      description: Update burakince/mlflow image version to 3.7.0
+      description: Update burakince/mlflow image version to 3.15.1
       links:
         - name: Upstream Project
           url: https://hub.docker.com/r/burakince/mlflow
     - kind: changed
-      description: Update dependency postgresql from 18.1.7 to 18.1.13
+      description: Update dependency postgresql from 18.8.4 to 18.8.6
       links:
         - name: ArtifactHub
           url: https://artifacthub.io/packages/helm/bitnami/postgresql
+    - kind: added
+      description: Support an existing secret for the Flask server secret key, so GitOps tooling cannot regenerate it and invalidate user sessions
+      links:
+        - name: GitHub PR
+          url: https://github.com/instadeepai/helm-charts/pull/3
     - kind: fixed
       description: Render custom initContainers before built-in ones to support sidecar init containers
       links:
         - name: GitHub PR
           url: https://github.com/instadeepai/helm-charts/pull/1
-  artifacthub.io/images: |
+  artifacthub.io/images: |-
     - name: mlflow
-      image: burakince/mlflow:3.7.0
+      image: burakince/mlflow:3.15.1
+    - name: oauth2-proxy
+      image: quay.io/oauth2-proxy/oauth2-proxy:v7.15.3
+    - name: dbchecker
+      image: library/busybox:1.38.0
+    - name: ini-file-initializer
+      image: library/busybox:1.38.0
   artifacthub.io/license: MIT
   artifacthub.io/maintainers: |
     - name: burakince
       email: burak.ince@linux.org.tr
   artifacthub.io/operator: "false"
   artifacthub.io/prerelease: "false"
-  artifacthub.io/screenshots: |
+  artifacthub.io/screenshots: |-
     - title: Quickstart UI screenshot
       url: https://raw.githubusercontent.com/mlflow/mlflow/refs/heads/master/docs/static/images/quickstart/quickstart_ui_screenshot.png
     - title: OSS registry 1 register
@@ -94,17 +105,19 @@ annotations:
       url: https://raw.githubusercontent.com/mlflow/mlflow/refs/heads/master/docs/static/images/oss_registry_5_version.png
     - title: OSS Registry 6 transition
       url: https://raw.githubusercontent.com/mlflow/mlflow/refs/heads/master/docs/static/images/oss_registry_6_version.png
-    - title: Experiment compare
-      url: https://raw.githubusercontent.com/mlflow/mlflow/refs/heads/master/docs/static/images/tutorial-compare.png
   artifacthub.io/signKey: |
     fingerprint: 939B1A0ED8AAA8E722ACCDB3B6A012EE8A76426A
     url: https://keybase.io/communitycharts/pgp_keys.asc
 dependencies:
   - name: postgresql
-    version: 18.1.13
+    version: 18.8.6
     repository: https://charts.bitnami.com/bitnami
     condition: postgresql.enabled
   - name: mysql
     version: 14.0.3
     repository: https://charts.bitnami.com/bitnami
     condition: mysql.enabled
+  - name: minio
+    version: 5.4.0
+    repository: https://charts.min.io/
+    condition: minio.enabled
