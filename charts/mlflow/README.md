@@ -4,7 +4,7 @@
 
 A Helm chart for Mlflow open source platform for the machine learning lifecycle
 
-![Version: 1.11.4-instadeep.1](https://img.shields.io/badge/Version-1.11.4--instadeep.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 3.15.1](https://img.shields.io/badge/AppVersion-3.15.1-informational?style=flat-square)
+![Version: 1.11.4-instadeep.2](https://img.shields.io/badge/Version-1.11.4--instadeep.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 3.15.1](https://img.shields.io/badge/AppVersion-3.15.1-informational?style=flat-square)
 
 ## Official Documentation
 
@@ -1124,6 +1124,7 @@ helm upgrade [RELEASE_NAME] community-charts/mlflow
 | ldapAuth.tlsVerification | string | `"required"` | TLS verification mode. Options: required, optional, none |
 | ldapAuth.uri | string | `""` | LDAP URI. e.g.: "ldap://lldap:3890/dc=mlflow,dc=test" |
 | ldapAuth.userGroupDistinguishedName | string | `""` | LDAP DN for the user group. e.g.: "cn=test-user,ou=groups,dc=mlflow,dc=test" |
+| lifecycle | object | `{}` | Lifecycle hooks for the mlflow container. A preStop pause keeps the pod serving while Services and gateways remove its endpoint, so a rollout does not drop the requests routed to a stopping pod. Please look to [here](https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/). |
 | livenessProbe | object | `{"failureThreshold":5,"initialDelaySeconds":10,"periodSeconds":30,"timeoutSeconds":3}` | Liveness probe configurations. Please look to [here](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes). |
 | log | object | `{"enabled":true,"level":"info"}` | Mlflow logging settings |
 | log.enabled | bool | `true` | Specifies if you want to enable mlflow logging. |
@@ -1256,6 +1257,7 @@ helm upgrade [RELEASE_NAME] community-charts/mlflow
 | strategy | object | `{"rollingUpdate":{"maxSurge":"100%","maxUnavailable":0},"type":"RollingUpdate"}` | This will set the deployment strategy more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy |
 | telemetry | object | `{"enabled":false}` | Mlflow Usage Tracking settings. More information can be found here: https://mlflow.org/docs/latest/community/usage-tracking/ |
 | telemetry.enabled | bool | `false` | Specifies if you want to enable collecting anonymized usage data about how core features of the platform are used. |
+| terminationGracePeriodSeconds | int | `nil` | Seconds Kubernetes waits for the pod to stop before it kills it. It must cover the preStop hook and the longest request that should finish. Unset keeps the Kubernetes default of 30. |
 | tolerations | list | `[]` | For more information checkout: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ |
 
 **Homepage:** <https://mlflow.org>

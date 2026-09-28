@@ -1,0 +1,76 @@
+suite: test mlflow container lifecycle and pod termination grace period
+
+templates:
+  - configmap.yaml
+  - deployment.yaml
+
+tests:
+  - it: should render neither a lifecycle nor a termination grace period by default
+    templates:
+      - deployment.yaml
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].lifecycle
+      - notExists:
+          path: spec.template.spec.terminationGracePeriodSeconds
+
+  - it: should render the lifecycle on the mlflow container
+    set:
+      lifecycle:
+        preStop:
+          sleep:
+            seconds: 15
+    templates:
+      - deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].name
+          value: mlflow
+      - equal:
+          path: spec.template.spec.containers[0].lifecycle
+          value:
+            preStop:
+              sleep:
+                seconds: 15
+
+  - it: should not render the lifecycle on the init containers
+    set:
+      backendStore.postgres.enabled: true
+      backendStore.postgres.host: postgres
+      backendStore.postgres.port: 5432
+      backendStore.postgres.database: mlflow
+      backendStore.postgres.user: mlflow
+      backendStore.postgres.password: P455w0rd!
+      backendStore.databaseConnectionCheck: true
+      lifecycle:
+        preStop:
+          sleep:
+            seconds: 15
+    templates:
+      - deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: dbchecker
+      - notExists:
+          path: spec.template.spec.initContainers[0].lifecycle
+      - exists:
+          path: spec.template.spec.containers[0].lifecycle
+
+  - it: should render the termination grace period on the pod
+    set:
+      terminationGracePeriodSeconds: 60
+    templates:
+      - deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.terminationGracePeriodSeconds
+          value: 60
+
+  - it: should reject a termination grace period that is not an integer
+    set:
+      terminationGracePeriodSeconds: sixty
+    templates:
+      - deployment.yaml
+    asserts:
+      - failedTemplate: {}

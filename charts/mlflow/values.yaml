@@ -574,6 +574,13 @@ readinessProbe:
   periodSeconds: 30
   timeoutSeconds: 3
   failureThreshold: 5
+# -- Lifecycle hooks for the mlflow container. A preStop pause keeps the pod serving while Services and gateways remove its endpoint, so a rollout does not drop the requests routed to a stopping pod. Please look to [here](https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/).
+lifecycle: {}
+# preStop:
+#   sleep:
+#     seconds: 15
+# -- (int) Seconds Kubernetes waits for the pod to stop before it kills it. It must cover the preStop hook and the longest request that should finish. Unset keeps the Kubernetes default of 30.
+terminationGracePeriodSeconds: null
 # -- oauth2-proxy sidecar configuration
 oauth2Proxy:
   # -- Enable deploying oauth2-proxy as a sidecar to the mlflow pod

@@ -425,6 +425,10 @@ spec:
           {{- with .Values.readinessProbe }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          {{- with .Values.lifecycle }}
+          lifecycle:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           env:
@@ -713,6 +717,9 @@ spec:
       {{- end }}
       {{- with .Values.priorityClassName }}
       priorityClassName: {{ . }}
+      {{- end }}
+      {{- with .Values.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ . }}
       {{- end }}
       volumes:
         - name: tmp
