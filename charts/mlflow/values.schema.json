@@ -1407,6 +1407,22 @@
       "title": "readinessProbe",
       "type": "object"
     },
+    "lifecycle": {
+      "additionalProperties": true,
+      "description": "Lifecycle hooks for the mlflow container. A preStop pause keeps the pod serving while Services and gateways remove its endpoint, so a rollout does not drop the requests routed to a stopping pod. Please look to [here](https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/).",
+      "required": [],
+      "title": "lifecycle",
+      "type": "object"
+    },
+    "terminationGracePeriodSeconds": {
+      "description": "Seconds Kubernetes waits for the pod to stop before it kills it. It must cover the preStop hook and the longest request that should finish. Unset keeps the Kubernetes default of 30.",
+      "minimum": 0,
+      "title": "terminationGracePeriodSeconds",
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
     "oauth2Proxy": {
       "additionalProperties": false,
       "description": "Configuration for deploying oauth2-proxy as a sidecar",
