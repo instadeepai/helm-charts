@@ -119,15 +119,6 @@ Usage: {{ include "mlflow.oidcAuthDbSecretName" . }}
 {{- end -}}
 
 {{/*
-Return the name of the Flask server secret key secret.
-When existingSecret.name is set the user manages the secret; otherwise the chart creates one.
-Usage: {{ include "mlflow.flaskServerSecretName" . }}
-*/}}
-{{- define "mlflow.flaskServerSecretName" -}}
-{{- default (printf "%s-flask-server-secret-key" (include "mlflow.fullname" .)) .Values.flaskServerSecretKeyExistingSecret.name -}}
-{{- end -}}
-
-{{/*
 Build the full container image reference, appending digest when set.
 */}}
 {{- define "mlflow.containerImage" -}}

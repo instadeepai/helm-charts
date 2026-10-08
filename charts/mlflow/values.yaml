@@ -282,14 +282,6 @@ artifactRoot:
     path: "" # optional
 # -- Mlflow Flask Server Secret Key. Default: Will be auto generated.
 flaskServerSecretKey: ""
-# -- Use a pre-existing secret for the Flask server secret key instead of letting the chart
-# generate one. Required under GitOps tooling that renders with `helm template`, where the
-# chart's `lookup` guard cannot see the cluster and the key would be regenerated on every
-# sync, invalidating all user sessions.
-flaskServerSecretKeyExistingSecret:
-  # -- Name of an existing secret. It must contain exactly one key,
-  # `MLFLOW_FLASK_SERVER_SECRET_KEY`, because the secret is mounted with `envFrom`.
-  name: ""
 # -- Mlflow authentication settings
 auth:
   # -- Specifies if you want to enable mlflow authentication. auth, ldapAuth, and oidcAuth can't be enabled at same time.
@@ -539,11 +531,6 @@ priorityClassName: ""
 extraDeploy: []
 # -- Init Containers for Mlflow Pod
 initContainers: []
-# -- Render `initContainers` before the chart's built-in init containers (dbchecker,
-# database migration, ini-file-initializer) rather than after them. Needed when a custom
-# init container has to be in place before the built-in ones run, for example a database
-# proxy sidecar.
-initContainersFirst: false
 # -- Extra containers for the mlflow pod
 extraContainers: []
 # -- Extra Volumes for the pod
@@ -603,7 +590,7 @@ oauth2Proxy:
     # -- OAuth2 Proxy image repository
     repository: quay.io/oauth2-proxy/oauth2-proxy
     # -- OAuth2 Proxy image tag
-    tag: v7.15.3
+    tag: v7.15.4
     # -- OAuth2 Proxy image pull policy
     pullPolicy: IfNotPresent
   # Upstream is constructed from the mlflow service container port;

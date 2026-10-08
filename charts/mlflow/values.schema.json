@@ -1243,13 +1243,6 @@
       "title": "initContainers",
       "type": "array"
     },
-    "initContainersFirst": {
-      "default": false,
-      "description": "Render initContainers before the chart's built-in init containers",
-      "required": [],
-      "title": "initContainersFirst",
-      "type": "boolean"
-    },
     "livenessProbe": {
       "additionalProperties": true,
       "description": "Liveness probe configurations. Please look to [here](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes).",
@@ -2337,24 +2330,6 @@
       "title": "flaskServerSecretKey",
       "type": "string"
     },
-    "flaskServerSecretKeyExistingSecret": {
-      "additionalProperties": false,
-      "description": "Reference a pre-existing secret holding the Flask server secret key",
-      "properties": {
-        "name": {
-          "default": "",
-          "description": "Name of the existing secret; leave empty to let the chart create one",
-          "required": [],
-          "title": "name",
-          "type": "string"
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "title": "flaskServerSecretKeyExistingSecret",
-      "type": "object"
-    },
     "auth": {
       "additionalProperties": false,
       "description": "Mlflow authentication settings",
@@ -3300,14 +3275,12 @@
     "priorityClassName",
     "extraDeploy",
     "initContainers",
-    "initContainersFirst",
     "extraContainers",
     "extraVolumes",
     "extraVolumeMounts",
     "livenessProbe",
     "readinessProbe",
     "flaskServerSecretKey",
-    "flaskServerSecretKeyExistingSecret",
     "auth",
     "ldapAuth",
     "autoscaling"
